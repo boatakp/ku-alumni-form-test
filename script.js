@@ -7,13 +7,15 @@ const API_URL =
 const MAX_IMAGE_SIDE = 1600; // ย่อรูปให้ด้านยาวสุดไม่เกินกี่ px
 const JPEG_QUALITY = 0.8; // คุณภาพรูปหลังย่อ (0-1)
 const MAX_RAW_IMAGE_MB = 25; // รูปต้นฉบับใหญ่ได้สุดเท่าไร (ก่อนย่อ)
+const HEIC_LIB_URL =
+  "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"; // ตัวแปลง HEIC (โหลดเฉพาะตอนจำเป็น)
 let MASTER = { address: {}, faculty: {}, lists: {}, maxFileMb: 5 };
 let submissionId =
   "S" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 let saved = null; // {member_id, upload_token, status}
 let pendingJobs = []; // ไฟล์ที่อัปโหลดไม่สำเร็จ
 
-/* ===================== เรียกหลังบ้าน (จุดเดียวที่ต่างจากเดิม) ===================== */
+/* ===================== เรียกหลังบ้าน ===================== */
 async function call(fn, ...args) {
   if (USE_MOCK) return mockCall(fn, args);
   const res = await fetch(API_URL, {
@@ -127,6 +129,98 @@ $("#themeBtn").onclick = () => {
     localStorage.setItem("ku-theme", t);
   } catch (e) {}
 };
+
+/* ===================== ตรวจไฟล์ทันทีตอนเลือก + รองรับ HEIC (ใหม่) ===================== */
+// ไฟล์ HEIC ดูจากนามสกุล เพราะบางเครื่อง (Windows) ไม่บอกชนิดไฟล์มาให้
+const isHeic = (f) =>
+  /\.(heic|heif)$/i.test(f.name) || /^image\/hei[cf]/i.test(f.type);
+
+// โหลดตัวแปลง HEIC จาก CDN ครั้งเดียว และเฉพาะเมื่อมีคนเลือกไฟล์ HEIC
+let heicLibPromise = null;
+function loadHeicLib() {
+  if (!heicLibPromise)
+    heicLibPromise = new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = HEIC_LIB_URL;
+      s.onload = () => res(window.heic2any);
+      s.onerror = () => {
+        heicLibPromise = null; // โหลดไม่สำเร็จ ให้ลองใหม่ได้ครั้งหน้า
+        rej(new Error("โหลดตัวแปลง HEIC ไม่สำเร็จ"));
+      };
+      document.head.appendChild(s);
+    });
+  return heicLibPromise;
+}
+
+// คืนไฟล์ที่เบราว์เซอร์เปิดได้: ไฟล์ปกติคืนเดิม, HEIC ลองเปิดตรงก่อน (Safari ทำได้) ถ้าไม่ได้ค่อยแปลงเป็น JPG
+async function toDecodable(file) {
+  if (!isHeic(file)) return file;
+  try {
+    const img = await loadImage(file);
+    URL.revokeObjectURL(img.src);
+    return file;
+  } catch (e) {}
+  const heic2any = await loadHeicLib();
+  const out = await heic2any({
+    blob: file,
+    toType: "image/jpeg",
+    quality: 0.9,
+  });
+  const blob = Array.isArray(out) ? out[0] : out;
+  return new File([blob], file.name.replace(/\.(heic|heif)$/i, ".jpg"), {
+    type: "image/jpeg",
+  });
+}
+
+// ข้อความสีเทาใต้ช่อง (ใช้บอกสถานะ ไม่ใช่ error)
+function setHint(input, msg) {
+  const box = input.parentElement.querySelector(".err");
+  if (!box) return;
+  box.textContent = msg;
+  box.style.color = "var(--muted)";
+}
+
+function rejectFile(input, msg) {
+  input.value = "";
+  input._ready = null;
+  input.dataset.state = "";
+  setErr(input, msg);
+}
+
+// ตรวจไฟล์ที่เพิ่งเลือก: ชนิด, ขนาด และลองเปิดรูปจริง เก็บไฟล์พร้อมใช้ไว้ที่ input._ready
+async function checkFile(input) {
+  const f = input.files[0];
+  const mb = f.size / 1048576;
+  const isPdf = f.type === "application/pdf";
+  const isImg = f.type.startsWith("image/") || isHeic(f);
+  if (!isImg && !isPdf) return rejectFile(input, "รับเฉพาะรูปภาพหรือ PDF");
+  if (isPdf && mb > MASTER.maxFileMb)
+    return rejectFile(input, `PDF ใหญ่เกิน ${MASTER.maxFileMb} MB`);
+  if (isImg && mb > MAX_RAW_IMAGE_MB)
+    return rejectFile(input, `รูปใหญ่เกิน ${MAX_RAW_IMAGE_MB} MB`);
+  if (isPdf) {
+    input._ready = f;
+    setErr(input, "");
+    return;
+  }
+  input.dataset.state = "checking";
+  setHint(input, isHeic(f) ? "กำลังแปลงรูป HEIC..." : "กำลังตรวจรูป...");
+  try {
+    const ready = await toDecodable(f);
+    const img = await loadImage(ready);
+    URL.revokeObjectURL(img.src);
+    if (input.files[0] !== f) return; // ผู้ใช้เปลี่ยนไฟล์ระหว่างรอ
+    input._ready = ready;
+    input.dataset.state = "";
+    setErr(input, "");
+  } catch (err) {
+    rejectFile(input, "เปิดรูปนี้ไม่ได้ กรุณาเลือกไฟล์ JPG หรือ PNG");
+  }
+}
+
+// ไฟล์ที่จะส่งจริง: ใช้ไฟล์ที่ตรวจ/แปลงแล้วก่อน
+const pickFile = (input) => input && (input._ready || input.files[0]);
+
 /* ===================== โหลด master data ===================== */
 call("getMasterData")
   .then((data) => {
@@ -220,7 +314,7 @@ function addWork() {
     <div class="c3"><label class="f req">ที่อยู่ที่ทำงาน</label><input type="text" data-k="address" data-req><div class="err"></div></div>
     <div class="c3"><label class="f">ชื่อบริษัท / ร้านค้า / หน่วยงาน</label><input type="text" data-k="company"></div>
     ${addrFields(true)}
-    <div class="c12"><label class="f">รูปภาพกิจการของสมาชิก</label><input type="file" data-file="business_photo" accept="image/*"><div class="err"></div></div>
+    <div class="c12"><label class="f">รูปภาพกิจการของสมาชิก</label><input type="file" data-file="business_photo" accept="image/*,.heic,.heif"><div class="err"></div></div>
   </div>`;
   $("#workList").appendChild(el);
   initAddr(el);
@@ -283,7 +377,10 @@ function setErr(el, msg) {
   const box =
     el.parentElement.querySelector(".err") ||
     el.closest(".addon")?.parentElement.querySelector(".err");
-  if (box) box.textContent = msg || "";
+  if (box) {
+    box.textContent = msg || "";
+    box.style.color = ""; // กลับเป็นสีแดงตาม CSS (เผื่อเคยเป็นสีเทาจาก setHint)
+  }
   el.setAttribute("aria-invalid", msg ? "true" : "false");
 }
 document.addEventListener("input", (e) => {
@@ -291,21 +388,9 @@ document.addEventListener("input", (e) => {
 });
 document.addEventListener("change", (e) => {
   const t = e.target;
-  if (t.type === "file" && t.files[0]) {
-    const f = t.files[0],
-      mb = f.size / 1048576;
-    const isImg = f.type.startsWith("image/"),
-      isPdf = f.type === "application/pdf";
-    let msg = "";
-    if (!isImg && !isPdf) msg = "รับเฉพาะรูปภาพหรือ PDF";
-    else if (isPdf && mb > MASTER.maxFileMb)
-      msg = `PDF ใหญ่เกิน ${MASTER.maxFileMb} MB`;
-    else if (isImg && mb > MAX_RAW_IMAGE_MB)
-      msg = `รูปใหญ่เกิน ${MAX_RAW_IMAGE_MB} MB`;
-    if (msg) {
-      t.value = "";
-      setErr(t, msg);
-    } else setErr(t, "");
+  if (t.type === "file") {
+    t._ready = null;
+    if (t.files[0]) checkFile(t); // ตรวจทันทีที่เลือกไฟล์
   }
   if (t.name === "gender") $("#gender_err").textContent = "";
   if (t.closest("#affil")) $("#affil_err").textContent = "";
@@ -313,6 +398,11 @@ document.addEventListener("change", (e) => {
 });
 function validate(stepId) {
   const sec = $("#" + stepId);
+  // ยังแปลง/ตรวจรูปไม่เสร็จ ให้รอก่อน
+  if ($$("input[type=file]", sec).some((i) => i.dataset.state === "checking")) {
+    showAlert("warn", "กำลังเตรียมรูป", "กรุณารอสักครู่แล้วกดอีกครั้ง");
+    return false;
+  }
   let first = null;
   $$("[data-req]", sec).forEach((el) => {
     const ok = el.value.trim() !== "";
@@ -437,11 +527,11 @@ function fileJobs() {
     ["file_student_photo", "student_photo"],
     ["file_current_photo", "current_photo"],
   ].forEach(([id, type]) => {
-    const f = $("#" + id).files[0];
+    const f = pickFile($("#" + id));
     if (f) jobs.push({ file: f, type });
   });
   $$("#workList .card").forEach((c, i) => {
-    const f = $("[data-file]", c).files[0];
+    const f = pickFile($("[data-file]", c));
     if (f) jobs.push({ file: f, type: "business_photo_" + (i + 1) });
   });
   return jobs;
@@ -471,9 +561,7 @@ async function prepareFile(file) {
   try {
     img = await loadImage(file);
   } catch (e) {
-    throw new Error(
-      "เปิดรูปนี้ไม่ได้ (อาจเป็นไฟล์ HEIC) กรุณาเลือกไฟล์ JPG หรือ PNG",
-    );
+    throw new Error("เปิดรูปนี้ไม่ได้ กรุณาเลือกไฟล์ JPG หรือ PNG");
   }
   const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(img.width, img.height));
   const canvas = document.createElement("canvas");
