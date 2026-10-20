@@ -1,6 +1,7 @@
 /* ===================== ตั้งค่าการเชื่อมต่อ ===================== */
-const USE_MOCK = true; // true = ทดสอบด้วยข้อมูลจำลอง, false = ส่งไป Apps Script จริง
-const API_URL = ""; // ลิงก์ Web App ของ Apps Script (ใส่ในรอบ D)
+const USE_MOCK = false; // true = ทดสอบด้วยข้อมูลจำลอง, false = ส่งไป Apps Script จริง
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbxnmq_S2Q_6b5rVTEjBGHHmniUP8c2HLA4vLRDT4krSypPq1pzANnRKLi2140qQnctsOg/exec";
 
 /* ===================== ค่าตั้งต้น ===================== */
 const MAX_IMAGE_SIDE = 1600; // ย่อรูปให้ด้านยาวสุดไม่เกินกี่ px
@@ -21,13 +22,15 @@ async function call(fn, ...args) {
     body: JSON.stringify({ fn, args }),
   });
   if (!res.ok) throw new Error("HTTP " + res.status);
-  return res.json();
+  const data = await res.json();
+  if (data.error) throw new Error(data.error); // Apps Script พัง ให้ไปเข้า catch
+  return data.result; // แกะกล่อง {result: ...} ออก
 }
 
-/* ข้อมูลจำลอง: ตอบแทน Apps Script ระหว่างทดสอบ */
+/* ข้อมูลจำลอง: ตอบแทน Apps Script ระหว่างทดสอบ (ใช้เมื่อ USE_MOCK = true) */
 async function mockCall(fn, args) {
-  await new Promise((r) => setTimeout(r, 400)); // หน่วงเวลาให้เหมือนส่งผ่านเน็ต
-  console.log("[MOCK]", fn, args); // ดูข้อมูลที่ส่งได้ใน Console
+  await new Promise((r) => setTimeout(r, 400));
+  console.log("[MOCK]", fn, args);
   if (fn === "getMasterData")
     return {
       address: {
@@ -124,7 +127,6 @@ $("#themeBtn").onclick = () => {
     localStorage.setItem("ku-theme", t);
   } catch (e) {}
 };
-
 /* ===================== โหลด master data ===================== */
 call("getMasterData")
   .then((data) => {
