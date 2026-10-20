@@ -1,88 +1,305 @@
 <!doctype html>
 <html lang="th">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ลงทะเบียนสมาชิกนิสิตเก่า มหาวิทยาลัยเกษตรศาสตร์</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-<header class="masthead"><div class="in">
-  <div><small>มหาวิทยาลัยเกษตรศาสตร์</small><h1>ลงทะเบียนสมาชิกนิสิตเก่า</h1></div>
-  <button type="button" class="theme-btn" id="themeBtn">🌙 โหมดมืด</button>
-</div></header>
-<div class="wrap">
-  <div class="stepper" aria-label="ขั้นตอน">
-    <div class="st on" id="s1"><b>1</b>ข้อมูลส่วนตัว</div><div class="bar"></div>
-    <div class="st" id="s2"><b>2</b>ที่อยู่</div><div class="bar"></div>
-    <div class="st" id="s3"><b>3</b>การศึกษา</div>
-  </div>
-
-  <div id="alertBox" aria-live="polite"></div>
-  <div id="loading" class="panel"><div class="pb">กำลังโหลดแบบฟอร์ม...</div></div>
-
-  <form id="f" class="hidden" novalidate>
-  <div class="hp" aria-hidden="true"><label>Website<input type="text" id="website" tabindex="-1" autocomplete="off"></label></div>
-
-  <!-- ===== STEP 1 ===== -->
-  <section id="step1">
-    <div class="panel"><div class="ph">ข้อมูลส่วนตัว</div><div class="pb"><div class="grid">
-      <div class="c6"><label class="f req" for="first_name_th">ชื่อ</label><input type="text" id="first_name_th" data-m data-req><div class="err"></div></div>
-      <div class="c6"><label class="f req" for="last_name_th">นามสกุล</label><input type="text" id="last_name_th" data-m data-req><div class="err"></div></div>
-      <div class="c6"><label class="f req" for="first_name_en">ชื่อ [อังกฤษ]</label><input type="text" id="first_name_en" data-m data-req><div class="err"></div></div>
-      <div class="c6"><label class="f req" for="last_name_en">นามสกุล [อังกฤษ]</label><input type="text" id="last_name_en" data-m data-req><div class="err"></div></div>
-      <div class="c6"><label class="f" for="student_first_name_th">ชื่อตอนเป็นนิสิต</label><input type="text" id="student_first_name_th" data-m></div>
-      <div class="c6"><label class="f" for="student_last_name_th">นามสกุลตอนเป็นนิสิต</label><input type="text" id="student_last_name_th" data-m></div>
-      <div class="c6"><label class="f" for="student_first_name_en">ชื่อตอนเป็นนิสิต [อังกฤษ]</label><input type="text" id="student_first_name_en" data-m></div>
-      <div class="c6"><label class="f" for="student_last_name_en">นามสกุลตอนเป็นนิสิต [อังกฤษ]</label><input type="text" id="student_last_name_en" data-m></div>
-      <div class="c12"><span class="f req" id="gLbl">เพศ</span>
-        <div class="inline" role="radiogroup" aria-labelledby="gLbl">
-          <label><input type="radio" name="gender" value="ชาย">ชาย</label>
-          <label><input type="radio" name="gender" value="หญิง">หญิง</label>
-          <label><input type="radio" name="gender" value="ไม่ระบุ">ไม่ระบุ</label>
-        </div><div class="err" id="gender_err"></div></div>
-      <div class="c4"><label class="f" for="birth_date">วันเกิด</label><input type="date" id="birth_date" data-m></div>
-      <div class="c4"><label class="f req" for="occupation_group">กลุ่มอาชีพ</label><select id="occupation_group" data-m data-req></select><div class="err"></div></div>
-      <div class="c4"><label class="f req" for="occupation">อาชีพ</label><input type="text" id="occupation" data-m data-req><div class="err"></div></div>
-      <div class="c4"><label class="f req" for="phone">เบอร์โทรศัพท์</label><input type="tel" id="phone" data-m data-req inputmode="tel"><div class="err"></div></div>
-      <div class="c4"><label class="f req" for="email">อีเมล</label><input type="email" id="email" data-m data-req><div class="err"></div></div>
-      <div class="c4"><label class="f" for="line_id">Line ID</label><input type="text" id="line_id" data-m></div>
-      <div class="c4"><label class="f" for="facebook">Facebook</label><input type="text" id="facebook" data-m></div>
-      <div class="c4"><label class="f" for="tiktok">Tiktok</label><input type="text" id="tiktok" data-m></div>
-      <div class="c4"><label class="f" for="instagram">Instagram</label><input type="text" id="instagram" data-m></div>
-      <div class="c12"><span class="f req">สังกัด</span><div class="inline" id="affil"></div><div class="err" id="affil_err"></div></div>
-      <div class="c6"><label class="f req" for="file_proof">หลักฐานการสมัคร (Transcript / ปริญญาบัตร / บัตรนิสิต)</label><input type="file" id="file_proof" data-file="proof" accept="image/*,application/pdf"><div class="err"></div><div class="hint">รูปภาพหรือ PDF ไม่เกิน 5 MB</div></div>
-      <div class="c6"></div>
-      <div class="c6"><label class="f" for="file_student_photo">รูปตอนเป็นนิสิต</label><input type="file" id="file_student_photo" data-file="student_photo" accept="image/*"><div class="err"></div></div>
-      <div class="c6"><label class="f" for="file_current_photo">รูปปัจจุบัน</label><input type="file" id="file_current_photo" data-file="current_photo" accept="image/*"><div class="err"></div></div>
-      <div class="c12"><label class="f" for="note">หมายเหตุ</label><input type="text" id="note" data-m></div>
-    </div></div></div>
-    <div class="btns"><button type="button" class="b-pri" data-go="2">ถัดไป</button></div>
-  </section>
-
-  <!-- ===== STEP 2 ===== -->
-  <section id="step2" class="hidden">
-    <div class="panel"><div class="ph">ที่อยู่ปัจจุบัน</div><div class="pb">
-      <div class="grid" data-addr="home">
-        <div class="c12"><label class="f req" for="home_address">ที่อยู่ปัจจุบัน</label><input type="text" id="home_address" data-req placeholder="บ้านเลขที่ ซอย ถนน"><div class="err"></div></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ลงทะเบียนสมาชิกนิสิตเก่า มหาวิทยาลัยเกษตรศาสตร์</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="in">
+        <div>
+          <small>มหาวิทยาลัยเกษตรศาสตร์</small>
+          <h1>ลงทะเบียนสมาชิกนิสิตเก่า</h1>
+        </div>
+        <button type="button" class="theme-btn" id="themeBtn">
+          🌙 โหมดมืด
+        </button>
       </div>
-    </div></div>
-    <div class="panel"><div class="ph">สถานที่ทำงาน</div><div class="pb">
-      <div id="workList"></div>
-      <button type="button" class="b-add" id="addWork">+ เพิ่มสถานที่ทำงาน</button>
-    </div></div>
-    <div class="btns"><button type="button" class="b-sec" data-go="1">ย้อนกลับ</button><button type="button" class="b-pri" data-go="3">ถัดไป</button></div>
-  </section>
+    </header>
+    <div class="wrap">
+      <div class="stepper" aria-label="ขั้นตอน">
+        <div class="st on" id="s1"><b>1</b>ข้อมูลส่วนตัว</div>
+        <div class="bar"></div>
+        <div class="st" id="s2"><b>2</b>ที่อยู่</div>
+        <div class="bar"></div>
+        <div class="st" id="s3"><b>3</b>การศึกษา</div>
+      </div>
 
-  <!-- ===== STEP 3 ===== -->
-  <section id="step3" class="hidden">
-    <div class="panel"><div class="ph">ประวัติการศึกษาในมหาวิทยาลัยเกษตรศาสตร์</div><div class="pb">
-      <div id="eduList"></div>
-      <button type="button" class="b-add" id="addEdu">+ เพิ่มวุฒิการศึกษา</button>
-    </div></div>
-    <div class="panel"><div class="pb">
-      <label class="inline" style="align-items:flex-start;gap:8px"><input type="checkbox" id="consent" style="margin-top:5px"><span>ยินยอมให้เก็บและใช้ข้อมูลส่วนบุคคลเพื่อการติดต่อสมาชิก ตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล</span></label>
-      <div class="err"
+      <div id="alertBox" aria-live="polite"></div>
+      <div id="loading" class="panel">
+        <div class="pb">กำลังโหลดแบบฟอร์ม...</div>
+      </div>
+
+      <form id="f" class="hidden" novalidate>
+        <div class="hp" aria-hidden="true">
+          <label
+            >Website<input
+              type="text"
+              id="website"
+              tabindex="-1"
+              autocomplete="off"
+          /></label>
+        </div>
+
+        <!-- ===== STEP 1 ===== -->
+        <section id="step1">
+          <div class="panel">
+            <div class="ph">ข้อมูลส่วนตัว</div>
+            <div class="pb">
+              <div class="grid">
+                <div class="c6">
+                  <label class="f req" for="first_name_th">ชื่อ</label
+                  ><input type="text" id="first_name_th" data-m data-req />
+                  <div class="err"></div>
+                </div>
+                <div class="c6">
+                  <label class="f req" for="last_name_th">นามสกุล</label
+                  ><input type="text" id="last_name_th" data-m data-req />
+                  <div class="err"></div>
+                </div>
+                <div class="c6">
+                  <label class="f req" for="first_name_en">ชื่อ [อังกฤษ]</label
+                  ><input type="text" id="first_name_en" data-m data-req />
+                  <div class="err"></div>
+                </div>
+                <div class="c6">
+                  <label class="f req" for="last_name_en"
+                    >นามสกุล [อังกฤษ]</label
+                  ><input type="text" id="last_name_en" data-m data-req />
+                  <div class="err"></div>
+                </div>
+                <div class="c6">
+                  <label class="f" for="student_first_name_th"
+                    >ชื่อตอนเป็นนิสิต</label
+                  ><input type="text" id="student_first_name_th" data-m />
+                </div>
+                <div class="c6">
+                  <label class="f" for="student_last_name_th"
+                    >นามสกุลตอนเป็นนิสิต</label
+                  ><input type="text" id="student_last_name_th" data-m />
+                </div>
+                <div class="c6">
+                  <label class="f" for="student_first_name_en"
+                    >ชื่อตอนเป็นนิสิต [อังกฤษ]</label
+                  ><input type="text" id="student_first_name_en" data-m />
+                </div>
+                <div class="c6">
+                  <label class="f" for="student_last_name_en"
+                    >นามสกุลตอนเป็นนิสิต [อังกฤษ]</label
+                  ><input type="text" id="student_last_name_en" data-m />
+                </div>
+                <div class="c12">
+                  <span class="f req" id="gLbl">เพศ</span>
+                  <div class="inline" role="radiogroup" aria-labelledby="gLbl">
+                    <label
+                      ><input
+                        type="radio"
+                        name="gender"
+                        value="ชาย"
+                      />ชาย</label
+                    >
+                    <label
+                      ><input
+                        type="radio"
+                        name="gender"
+                        value="หญิง"
+                      />หญิง</label
+                    >
+                    <label
+                      ><input
+                        type="radio"
+                        name="gender"
+                        value="ไม่ระบุ"
+                      />ไม่ระบุ</label
+                    >
+                  </div>
+                  <div class="err" id="gender_err"></div>
+                </div>
+                <div class="c4">
+                  <label class="f" for="birth_date">วันเกิด</label
+                  ><input type="date" id="birth_date" data-m />
+                </div>
+                <div class="c4">
+                  <label class="f req" for="occupation_group">กลุ่มอาชีพ</label
+                  ><select id="occupation_group" data-m data-req></select>
+                  <div class="err"></div>
+                </div>
+                <div class="c4">
+                  <label class="f req" for="occupation">อาชีพ</label
+                  ><input type="text" id="occupation" data-m data-req />
+                  <div class="err"></div>
+                </div>
+                <div class="c4">
+                  <label class="f req" for="phone">เบอร์โทรศัพท์</label
+                  ><input
+                    type="tel"
+                    id="phone"
+                    data-m
+                    data-req
+                    inputmode="tel"
+                  />
+                  <div class="err"></div>
+                </div>
+                <div class="c4">
+                  <label class="f req" for="email">อีเมล</label
+                  ><input type="email" id="email" data-m data-req />
+                  <div class="err"></div>
+                </div>
+                <div class="c4">
+                  <label class="f" for="line_id">Line ID</label
+                  ><input type="text" id="line_id" data-m />
+                </div>
+                <div class="c4">
+                  <label class="f" for="facebook">Facebook</label
+                  ><input type="text" id="facebook" data-m />
+                </div>
+                <div class="c4">
+                  <label class="f" for="tiktok">Tiktok</label
+                  ><input type="text" id="tiktok" data-m />
+                </div>
+                <div class="c4">
+                  <label class="f" for="instagram">Instagram</label
+                  ><input type="text" id="instagram" data-m />
+                </div>
+                <div class="c12">
+                  <span class="f req">สังกัด</span>
+                  <div class="inline" id="affil"></div>
+                  <div class="err" id="affil_err"></div>
+                </div>
+                <div class="c6">
+                  <label class="f req" for="file_proof"
+                    >หลักฐานการสมัคร (Transcript / ปริญญาบัตร /
+                    บัตรนิสิต)</label
+                  ><input
+                    type="file"
+                    id="file_proof"
+                    data-file="proof"
+                    accept="image/*,application/pdf"
+                  />
+                  <div class="err"></div>
+                  <div class="hint">รูปภาพหรือ PDF ไม่เกิน 5 MB</div>
+                </div>
+                <div class="c6"></div>
+                <div class="c6">
+                  <label class="f" for="file_student_photo"
+                    >รูปตอนเป็นนิสิต</label
+                  ><input
+                    type="file"
+                    id="file_student_photo"
+                    data-file="student_photo"
+                    accept="image/*"
+                  />
+                  <div class="err"></div>
+                </div>
+                <div class="c6">
+                  <label class="f" for="file_current_photo">รูปปัจจุบัน</label
+                  ><input
+                    type="file"
+                    id="file_current_photo"
+                    data-file="current_photo"
+                    accept="image/*"
+                  />
+                  <div class="err"></div>
+                </div>
+                <div class="c12">
+                  <label class="f" for="note">หมายเหตุ</label
+                  ><input type="text" id="note" data-m />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="btns">
+            <button type="button" class="b-pri" data-go="2">ถัดไป</button>
+          </div>
+        </section>
+
+        <!-- ===== STEP 2 ===== -->
+        <section id="step2" class="hidden">
+          <div class="panel">
+            <div class="ph">ที่อยู่ปัจจุบัน</div>
+            <div class="pb">
+              <div class="grid" data-addr="home">
+                <div class="c12">
+                  <label class="f req" for="home_address">ที่อยู่ปัจจุบัน</label
+                  ><input
+                    type="text"
+                    id="home_address"
+                    data-req
+                    placeholder="บ้านเลขที่ ซอย ถนน"
+                  />
+                  <div class="err"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph">สถานที่ทำงาน</div>
+            <div class="pb">
+              <div id="workList"></div>
+              <button type="button" class="b-add" id="addWork">
+                + เพิ่มสถานที่ทำงาน
+              </button>
+            </div>
+          </div>
+          <div class="btns">
+            <button type="button" class="b-sec" data-go="1">ย้อนกลับ</button
+            ><button type="button" class="b-pri" data-go="3">ถัดไป</button>
+          </div>
+        </section>
+
+        <!-- ===== STEP 3 ===== -->
+        <section id="step3" class="hidden">
+          <div class="panel">
+            <div class="ph">ประวัติการศึกษาในมหาวิทยาลัยเกษตรศาสตร์</div>
+            <div class="pb">
+              <div id="eduList"></div>
+              <button type="button" class="b-add" id="addEdu">
+                + เพิ่มวุฒิการศึกษา
+              </button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="pb">
+              <label class="inline" style="align-items: flex-start; gap: 8px"
+                ><input
+                  type="checkbox"
+                  id="consent"
+                  style="margin-top: 5px"
+                /><span
+                  >ยินยอมให้เก็บและใช้ข้อมูลส่วนบุคคลเพื่อการติดต่อสมาชิก ตาม
+                  พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล</span
+                ></label
+              >
+              <div class="err" id="consent_err"></div>
+            </div>
+          </div>
+          <div class="btns">
+            <button type="button" class="b-sec" data-go="2" id="backBtn">
+              ย้อนกลับ</button
+            ><button type="button" class="b-pri" id="saveBtn">บันทึก</button>
+          </div>
+          <div class="progress" id="progress"></div>
+        </section>
+
+        <!-- ===== DONE ===== -->
+        <section id="done" class="hidden">
+          <div class="panel"><div class="pb" id="doneBody"></div></div>
+          <div class="btns">
+            <button type="button" class="b-sec hidden" id="retryBtn">
+              อัปโหลดไฟล์ที่ไม่สำเร็จอีกครั้ง
+            </button>
+          </div>
+        </section>
+      </form>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
