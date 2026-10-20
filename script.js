@@ -9,6 +9,7 @@ const JPEG_QUALITY = 0.8; // คุณภาพรูปหลังย่อ (0
 const MAX_RAW_IMAGE_MB = 25; // รูปต้นฉบับใหญ่ได้สุดเท่าไร (ก่อนย่อ)
 const HEIC_LIB_URL =
   "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"; // ตัวแปลง HEIC (โหลดเฉพาะตอนจำเป็น)
+const OTHER_OCCUPATION = "อื่นๆ"; // กลุ่มอาชีพที่ต้องพิมพ์ระบุอาชีพเอง (ต้องตรงกับค่าในชีต master_list และ Code.gs)
 let MASTER = { address: {}, faculty: {}, lists: {}, maxFileMb: 5 };
 let submissionId =
   "S" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -226,12 +227,6 @@ call("getMasterData")
   .then((data) => {
     MASTER = data;
     opts($("#occupation_group"), MASTER.lists.occupation_group || []);
-    $("#affil").innerHTML = (MASTER.lists.affiliation || [])
-      .map(
-        (v) =>
-          `<label><input type="checkbox" value="${esc(v)}"${v === "นิสิตเก่า" ? " checked" : ""}>${esc(v)}</label>`,
-      )
-      .join("");
     $("[data-addr=home]").insertAdjacentHTML("beforeend", addrFields(true));
     initAddr($("[data-addr=home]"));
     addWork();
@@ -245,9 +240,10 @@ call("getMasterData")
 
 /* ===================== ที่อยู่: จังหวัด > อำเภอ > ตำบล > รหัสไปรษณีย์ ===================== */
 let uid = 0;
-function addrFields(required) {
+// required = บังคับเสมอ (data-req), conditional = บังคับเมื่อกรอกการ์ดนั้น (data-creq)
+function addrFields(required, conditional = false) {
   const r = required ? " req" : "",
-    d = required ? " data-req" : "",
+    d = required ? " data-req" : conditional ? " data-creq" : "",
     i = ++uid;
   return `
   <div class="c3"><label class="f${r}" for="p${i}">จังหวัด</label><select id="p${i}" data-role="prov" data-k="province"${d}></select><div class="err"></div></div>
@@ -307,13 +303,15 @@ function addWork() {
   const el = document.createElement("div");
   el.className = "card";
   el.dataset.addr = "work";
-  el.innerHTML = `<div class="card-h"><span>สถานที่ทำงาน ${n}</span>${n > 1 ? '<button type="button" class="b-del">ลบ</button>' : ""}</div>
+  // ลบได้ทุกใบ การ์ดว่างทั้งใบจะถูกข้าม ไม่ส่งไปบันทึก
+  el.innerHTML = `<div class="card-h"><span>สถานที่ทำงาน ${n}</span><button type="button" class="b-del">ลบ</button></div>
+  <div class="hint" style="margin:-4px 0 8px">ไม่บังคับ ถ้ากรอก กรุณาระบุที่อยู่ จังหวัด อำเภอ ตำบล ให้ครบ</div>
   <div class="grid">
     <div class="c3"><label class="f">ปี พ.ศ. เริ่มทำงาน</label><input type="text" data-k="start_year_be" inputmode="numeric" placeholder="2563"></div>
     <div class="c3"><label class="f">ถึงปี พ.ศ.</label><input type="text" data-k="end_year_be" inputmode="numeric" placeholder="ว่าง = ปัจจุบัน"></div>
-    <div class="c3"><label class="f req">ที่อยู่ที่ทำงาน</label><input type="text" data-k="address" data-req><div class="err"></div></div>
+    <div class="c3"><label class="f">ที่อยู่ที่ทำงาน</label><input type="text" data-k="address" data-creq><div class="err"></div></div>
     <div class="c3"><label class="f">ชื่อบริษัท / ร้านค้า / หน่วยงาน</label><input type="text" data-k="company"></div>
-    ${addrFields(true)}
+    ${addrFields(false, true)}
     <div class="c12"><label class="f">รูปภาพกิจการของสมาชิก</label><input type="file" data-file="business_photo" accept="image/*,.heic,.heif"><div class="err"></div></div>
   </div>`;
   $("#workList").appendChild(el);
@@ -334,7 +332,7 @@ function addEdu() {
     <div class="c3"><label class="f">รุ่นสาขาวิชา</label><input type="text" data-k="major_gen"></div>
     <div class="c3"><label class="f">รุ่นคณะ</label><input type="text" data-k="faculty_gen"></div>
     <div class="c3"><label class="f">รหัสนิสิต</label><input type="text" data-k="student_id" inputmode="numeric"></div>
-    <div class="c3"><label class="f">รุ่น KU</label><div class="addon"><span>KU</span><input type="text" data-k="ku_gen" inputmode="numeric"></div></div>
+    <div class="c3"><label class="f req">รุ่น KU</label><div class="addon"><span>KU</span><input type="text" data-k="ku_gen" inputmode="numeric" data-req></div><div class="err"></div></div>
     <div class="c3"><label class="f">ปีที่เข้าศึกษา (พ.ศ.)</label><input type="text" data-k="entry_year_be" inputmode="numeric"></div>
     <div class="c3"><label class="f">ปีที่จบการศึกษา (พ.ศ.)</label><input type="text" data-k="grad_year_be" inputmode="numeric"></div>
   </div>`;
@@ -372,6 +370,28 @@ document.addEventListener("click", (e) => {
 $("#addWork").onclick = addWork;
 $("#addEdu").onclick = addEdu;
 
+/* ===================== อาชีพ: โผล่เมื่อเลือก "อื่นๆ" ===================== */
+document.addEventListener("change", (e) => {
+  if (e.target.id !== "occupation_group") return;
+  const show = e.target.value === OTHER_OCCUPATION;
+  $("#occupationWrap").classList.toggle("hidden", !show);
+  if (!show) {
+    $("#occupation").value = ""; // ล้างค่าที่เคยพิมพ์ ไม่ให้ส่งไปผิดๆ
+    setErr($("#occupation"), "");
+  }
+});
+
+/* ===================== การ์ดที่ทำงาน: ว่าง = ข้าม ===================== */
+// การ์ดถือว่า "กรอกแล้ว" เมื่อมีช่องใดช่องหนึ่งมีค่า (ไม่นับ checkbox) หรือแนบรูป
+function isCardFilled(card) {
+  return (
+    $$("[data-k]", card).some(
+      (i) => i.type !== "checkbox" && i.value.trim() !== "",
+    ) || !!pickFile($("[data-file]", card))
+  );
+}
+const filledWorkCards = () => $$("#workList .card").filter(isCardFilled);
+
 /* ===================== validation ===================== */
 function setErr(el, msg) {
   const box =
@@ -393,7 +413,6 @@ document.addEventListener("change", (e) => {
     if (t.files[0]) checkFile(t); // ตรวจทันทีที่เลือกไฟล์
   }
   if (t.name === "gender") $("#gender_err").textContent = "";
-  if (t.closest("#affil")) $("#affil_err").textContent = "";
   if (t.id === "consent") $("#consent_err").textContent = "";
 });
 function validate(stepId) {
@@ -411,7 +430,9 @@ function validate(stepId) {
   });
   if (stepId === "step1") {
     const em = $("#email"),
-      ph = $("#phone");
+      ph = $("#phone"),
+      occ = $("#occupation");
+    // อีเมลไม่บังคับ แต่ถ้ากรอกต้องรูปแบบถูก
     if (em.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value.trim())) {
       setErr(em, "รูปแบบอีเมลไม่ถูกต้อง");
       first = first || em;
@@ -424,14 +445,24 @@ function validate(stepId) {
       $("#gender_err").textContent = "เลือกเพศ";
       first = first || $("[name=gender]");
     }
-    if (!$$("#affil input:checked").length) {
-      $("#affil_err").textContent = "เลือกอย่างน้อย 1 สังกัด";
-      first = first || $("#affil input");
+    if (
+      $("#occupation_group").value === OTHER_OCCUPATION &&
+      !occ.value.trim()
+    ) {
+      setErr(occ, "โปรดระบุอาชีพ");
+      first = first || occ;
     }
-    if (!$("#file_proof").files.length) {
-      setErr($("#file_proof"), "แนบหลักฐานการสมัครอย่างน้อย 1 ไฟล์");
-      first = first || $("#file_proof");
-    }
+  }
+  if (stepId === "step2") {
+    // การ์ดที่ทำงานที่กรอกแล้ว ต้องมีที่อยู่ครบ การ์ดว่างข้ามได้
+    $$("#workList .card").forEach((card) => {
+      const filled = isCardFilled(card);
+      $$("[data-creq]", card).forEach((el) => {
+        const ok = !filled || el.value.trim() !== "";
+        setErr(el, ok ? "" : "กรอกช่องนี้");
+        if (!ok && !first) first = el;
+      });
+    });
   }
   if (stepId === "step3" && !$("#consent").checked) {
     $("#consent_err").textContent = "ต้องยินยอมก่อนบันทึก";
@@ -498,9 +529,6 @@ function collect() {
   const member = {};
   $$("[data-m]").forEach((i) => (member[i.id] = i.value.trim()));
   member.gender = ($("[name=gender]:checked") || {}).value || "";
-  member.affiliation = $$("#affil input:checked")
-    .map((c) => c.value)
-    .join(",");
   const home = readBlock($("[data-addr=home]"));
   Object.assign(member, {
     home_address: $("#home_address").value.trim(),
@@ -516,7 +544,7 @@ function collect() {
     website: $("#website").value,
     consent: $("#consent").checked,
     member,
-    workplaces: $$("#workList .card").map(readBlock),
+    workplaces: filledWorkCards().map(readBlock), // การ์ดว่างไม่ส่ง
     educations: $$("#eduList .card").map(readBlock),
   };
 }
@@ -530,7 +558,8 @@ function fileJobs() {
     const f = pickFile($("#" + id));
     if (f) jobs.push({ file: f, type });
   });
-  $$("#workList .card").forEach((c, i) => {
+  // ใช้ลำดับเดียวกับ workplaces ที่ส่งไป เลขรูปกิจการจะตรงกับ seq ในชีต
+  filledWorkCards().forEach((c, i) => {
     const f = pickFile($("[data-file]", c));
     if (f) jobs.push({ file: f, type: "business_photo_" + (i + 1) });
   });

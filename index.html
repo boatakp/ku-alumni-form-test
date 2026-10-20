@@ -66,15 +66,12 @@
                   <div class="err"></div>
                 </div>
                 <div class="c6">
-                  <label class="f req" for="first_name_en">ชื่อ [อังกฤษ]</label
-                  ><input type="text" id="first_name_en" data-m data-req />
-                  <div class="err"></div>
+                  <label class="f" for="first_name_en">ชื่อ [อังกฤษ]</label
+                  ><input type="text" id="first_name_en" data-m />
                 </div>
                 <div class="c6">
-                  <label class="f req" for="last_name_en"
-                    >นามสกุล [อังกฤษ]</label
-                  ><input type="text" id="last_name_en" data-m data-req />
-                  <div class="err"></div>
+                  <label class="f" for="last_name_en">นามสกุล [อังกฤษ]</label
+                  ><input type="text" id="last_name_en" data-m />
                 </div>
                 <div class="c6">
                   <label class="f" for="student_first_name_th"
@@ -132,9 +129,10 @@
                   ><select id="occupation_group" data-m data-req></select>
                   <div class="err"></div>
                 </div>
-                <div class="c4">
-                  <label class="f req" for="occupation">อาชีพ</label
-                  ><input type="text" id="occupation" data-m data-req />
+                <!-- โผล่เฉพาะเมื่อเลือกกลุ่มอาชีพ = อื่นๆ (ควบคุมใน script.js) -->
+                <div class="c4 hidden" id="occupationWrap">
+                  <label class="f req" for="occupation">โปรดระบุอาชีพ</label
+                  ><input type="text" id="occupation" data-m />
                   <div class="err"></div>
                 </div>
                 <div class="c4">
@@ -149,8 +147,8 @@
                   <div class="err"></div>
                 </div>
                 <div class="c4">
-                  <label class="f req" for="email">อีเมล</label
-                  ><input type="email" id="email" data-m data-req />
+                  <label class="f" for="email">อีเมล</label
+                  ><input type="email" id="email" data-m />
                   <div class="err"></div>
                 </div>
                 <div class="c4">
@@ -169,13 +167,8 @@
                   <label class="f" for="instagram">Instagram</label
                   ><input type="text" id="instagram" data-m />
                 </div>
-                <div class="c12">
-                  <span class="f req">สังกัด</span>
-                  <div class="inline" id="affil"></div>
-                  <div class="err" id="affil_err"></div>
-                </div>
                 <div class="c6">
-                  <label class="f req" for="file_proof"
+                  <label class="f" for="file_proof"
                     >หลักฐานการสมัคร (Transcript / ปริญญาบัตร /
                     บัตรนิสิต)</label
                   ><input
@@ -241,7 +234,7 @@
             </div>
           </div>
           <div class="panel">
-            <div class="ph">สถานที่ทำงาน</div>
+            <div class="ph">สถานที่ทำงาน (ไม่บังคับ)</div>
             <div class="pb">
               <div id="workList"></div>
               <button type="button" class="b-add" id="addWork">
