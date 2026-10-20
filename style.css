@@ -1,0 +1,17 @@
+body {
+  font-family: "Sarabun", sans-serif;
+  background: #f4f8f4;
+  color: #1f2a1f;
+  margin: 0;
+  padding: 24px;
+}
+
+h1 {
+  color: #006664;
+  font-size: 28px;
+}
+
+p {
+  font-size: 16px;
+  line-height: 1.6;
+}
